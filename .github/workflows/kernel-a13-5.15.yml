@@ -45,12 +45,8 @@ jobs:
       matrix:
         include:
           # 从谷歌提交找到补丁，修复94与104的兼容性问题
-          - sub_level: "197" # LineageOS
-            os_patch_level: "2026-03"
-          - sub_level: "178" # HyperOS
-            os_patch_level: "2026-01" # HyperOS xiaomi.eu latest, fuxi
-          - sub_level: "194" # AOSPA
-            os_patch_level: "2025-07"
+          - sub_level: "200" # LineageOS
+            os_patch_level: "2026-02"
     uses: ./.github/workflows/gki-kernel.yml
     secrets: inherit
     with:
