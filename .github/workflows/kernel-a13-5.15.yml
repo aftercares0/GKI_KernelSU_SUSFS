@@ -45,8 +45,8 @@ jobs:
       matrix:
         include:
           # 从谷歌提交找到补丁，修复94与104的兼容性问题
-          - sub_level: "200" # LineageOS
-            os_patch_level: "2026-02"
+          - sub_level: "200" # PixelOS
+            os_patch_level: "2026-03"
     uses: ./.github/workflows/gki-kernel.yml
     secrets: inherit
     with:
