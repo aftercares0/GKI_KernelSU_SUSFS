@@ -44,7 +44,10 @@ on:
         description: '是否同时获取最新KSU管理器?（实验性功能，报错请关闭）'
         required: true
         type: boolean
-        default: true
+      BBG:
+        description: "gng idek wtf is this"
+        required: true
+        type: boolean
 jobs:
 
   build-kernel-a14-6-1:
