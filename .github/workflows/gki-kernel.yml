@@ -53,6 +53,11 @@ on:
         required: true
         type: boolean
         default: false
+      page_size:
+        description: "Kernel page size (4k or 16k)"
+        required: true
+        type: string
+        default: "4k"
 jobs:
   build-kernel-kernelsu-susfs:
     runs-on: ubuntu-latest
@@ -82,6 +87,8 @@ jobs:
 
           # Set CONFIG as an environment variable for future steps
           echo "CONFIG=$CONFIG" >> $GITHUB_ENV
+          echo "PAGE_SIZE=${{ inputs.page_size }}" >> $GITHUB_ENV
+          echo "Using PAGE_SIZE=${{ inputs.page_size }}"
 
           echo "CONFIG set to: $CONFIG"
 
@@ -591,6 +598,40 @@ jobs:
             fi
           fi
 
+      - name: Enable 16KB page size (optional)
+        run: |
+          cd "$CONFIG/common"
+
+          CONFIG_FILE="arch/arm64/configs/gki_defconfig"
+
+          echo "Selected PAGE_SIZE=$PAGE_SIZE"
+
+          if [ "$PAGE_SIZE" = "16k" ]; then
+            echo "Switching kernel to 16KB pages..."
+
+            # Remove 4K page config if present
+            sed -i '/CONFIG_ARM64_4K_PAGES/d' $CONFIG_FILE
+
+            # Enable 16K pages
+            echo "CONFIG_ARM64_16K_PAGES=y" >> $CONFIG_FILE
+
+            # Recommended Google flags for 16K
+            echo "CONFIG_PGTABLE_LEVELS=3" >> $CONFIG_FILE
+            echo "CONFIG_ARM64_VA_BITS=48" >> $CONFIG_FILE
+
+            # Improve memory + battery behavior
+            echo "CONFIG_LRU_GEN=y" >> $CONFIG_FILE
+            echo "CONFIG_LRU_GEN_ENABLED=y" >> $CONFIG_FILE
+            echo "CONFIG_LRU_GEN_STATS=y" >> $CONFIG_FILE
+
+            # Reduce TLB pressure (huge win for social apps)
+            echo "CONFIG_ARM64_HW_AFDBM=y" >> $CONFIG_FILE
+
+            echo "16KB configuration applied ✅"
+          else
+            echo "Using default 4KB page size"
+          fi
+
       - name: Build with retry
         uses: nick-fields/retry@v3
         with:
@@ -771,6 +812,13 @@ jobs:
           $MKBOOTIMG --header_version 4 --kernel Image.lz4 --output boot-lz4.img
           $AVBTOOL add_hash_footer --partition_name boot --partition_size $((64 * 1024 * 1024)) --image boot-lz4.img --algorithm SHA256_RSA2048 --key $BOOT_SIGN_KEY_PATH
           cp ./boot-lz4.img ../${{ inputs.android_version }}-${{ inputs.kernel_version }}.${{ inputs.sub_level }}-${{ inputs.os_patch_level }}-boot-lz4.img
+
+      - name: Verify page size config
+        run: |
+          cd "$CONFIG/common"
+          echo "Kernel page config:"
+          grep ARM64_16K_PAGES arch/arm64/configs/gki_defconfig || true
+          grep ARM64_4K_PAGES arch/arm64/configs/gki_defconfig || true
 
       - name: 上传编译资产
         uses: actions/upload-artifact@v4
